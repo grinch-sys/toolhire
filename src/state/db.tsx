@@ -64,7 +64,7 @@ export function DBProvider({ children }: PropsWithChildren) {
     const today = todayISO();
     setDb((current: DB) => {
       let changed = false;
-      const hires: Hire[] = current.hires.map((hire) => {
+      const hires = current.hires.map<Hire>((hire) => {
         if (hire.status !== 'closed' && hire.dueDate < today && hire.status !== 'overdue') {
           changed = true;
           const updated: Hire = { ...hire, status: 'overdue' };
@@ -96,7 +96,7 @@ export function DBProvider({ children }: PropsWithChildren) {
     const updateTool = (id: string, updates: Partial<Tool>) => {
       setDb((current: DB) => ({
         ...current,
-        tools: current.tools.map((tool) => {
+        tools: current.tools.map<Tool>((tool) => {
           if (tool.id !== id) return tool;
           const next: Tool = { ...tool, ...updates };
           return next;
@@ -125,7 +125,7 @@ export function DBProvider({ children }: PropsWithChildren) {
     const updateCustomer = (id: string, updates: Partial<Customer>) => {
       setDb((current: DB) => ({
         ...current,
-        customers: current.customers.map((customer) => {
+        customers: current.customers.map<Customer>((customer) => {
           if (customer.id !== id) return customer;
           const next: Customer = { ...customer, ...updates };
           return next;
@@ -150,7 +150,7 @@ export function DBProvider({ children }: PropsWithChildren) {
           createdAt: todayISO()
         };
         const hires: Hire[] = [...current.hires, hire];
-        const tools: Tool[] = current.tools.map((tool) => {
+        const tools = current.tools.map<Tool>((tool) => {
           if (tool.id !== input.toolId) return tool;
           const updated: Tool = { ...tool, status: 'hired' };
           return updated;
@@ -159,10 +159,10 @@ export function DBProvider({ children }: PropsWithChildren) {
       });
     };
 
-    const updateHireStatus = (id: string, updates: Partial<Hire>) => {
+    const updateHireStatus = (id: string, updates: Partial<Hire> & { status?: Hire['status'] }) => {
       setDb((current: DB) => {
         let affectedToolId: string | undefined;
-        const hires: Hire[] = current.hires.map((hire) => {
+        const hires = current.hires.map<Hire>((hire) => {
           if (hire.id !== id) return hire;
           affectedToolId = hire.toolId;
           const next: Hire = { ...hire, ...updates };
@@ -174,7 +174,7 @@ export function DBProvider({ children }: PropsWithChildren) {
           return next;
         });
 
-        const tools: Tool[] = current.tools.map((tool) => {
+        const tools = current.tools.map<Tool>((tool) => {
           if (tool.id !== affectedToolId) return tool;
           if (updates.status === 'closed') {
             const nextTool: Tool = { ...tool, status: 'available' };
