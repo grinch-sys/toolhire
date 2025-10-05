@@ -62,16 +62,18 @@ export function DBProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (loading) return;
     const today = todayISO();
-    setDb((current) => {
+    setDb((current: DB) => {
       let changed = false;
-      const hires = current.hires.map((hire) => {
+      const hires: Hire[] = current.hires.map((hire) => {
         if (hire.status !== 'closed' && hire.dueDate < today && hire.status !== 'overdue') {
           changed = true;
-          return { ...hire, status: 'overdue' };
+          const updated: Hire = { ...hire, status: 'overdue' };
+          return updated;
         }
         if (hire.status === 'overdue' && hire.dueDate >= today) {
           changed = true;
-          return { ...hire, status: 'open' };
+          const updated: Hire = { ...hire, status: 'open' };
+          return updated;
         }
         return hire;
       });
@@ -82,21 +84,28 @@ export function DBProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<DBContextValue>(() => {
     const createTool = (input: Omit<Tool, 'id' | 'createdAt'>) => {
-      setDb((current) => ({
-        ...current,
-        tools: [...current.tools, { ...input, id: nanoid(), createdAt: todayISO() }]
-      }));
+      setDb((current: DB) => {
+        const tool: Tool = { ...input, id: nanoid(), createdAt: todayISO() };
+        return {
+          ...current,
+          tools: [...current.tools, tool]
+        };
+      });
     };
 
     const updateTool = (id: string, updates: Partial<Tool>) => {
-      setDb((current) => ({
+      setDb((current: DB) => ({
         ...current,
-        tools: current.tools.map((tool) => (tool.id === id ? { ...tool, ...updates } : tool))
+        tools: current.tools.map((tool) => {
+          if (tool.id !== id) return tool;
+          const next: Tool = { ...tool, ...updates };
+          return next;
+        })
       }));
     };
 
     const deleteTool = (id: string) => {
-      setDb((current) => ({
+      setDb((current: DB) => ({
         ...current,
         tools: current.tools.filter((tool) => tool.id !== id),
         hires: current.hires.filter((hire) => hire.toolId !== id)
@@ -104,23 +113,28 @@ export function DBProvider({ children }: PropsWithChildren) {
     };
 
     const createCustomer = (input: Omit<Customer, 'id' | 'createdAt'>) => {
-      setDb((current) => ({
-        ...current,
-        customers: [...current.customers, { ...input, id: nanoid(), createdAt: todayISO() }]
-      }));
+      setDb((current: DB) => {
+        const customer: Customer = { ...input, id: nanoid(), createdAt: todayISO() };
+        return {
+          ...current,
+          customers: [...current.customers, customer]
+        };
+      });
     };
 
     const updateCustomer = (id: string, updates: Partial<Customer>) => {
-      setDb((current) => ({
+      setDb((current: DB) => ({
         ...current,
-        customers: current.customers.map((customer) =>
-          customer.id === id ? { ...customer, ...updates } : customer
-        )
+        customers: current.customers.map((customer) => {
+          if (customer.id !== id) return customer;
+          const next: Customer = { ...customer, ...updates };
+          return next;
+        })
       }));
     };
 
     const deleteCustomer = (id: string) => {
-      setDb((current) => ({
+      setDb((current: DB) => ({
         ...current,
         customers: current.customers.filter((customer) => customer.id !== id),
         hires: current.hires.filter((hire) => hire.customerId !== id)
@@ -128,27 +142,27 @@ export function DBProvider({ children }: PropsWithChildren) {
     };
 
     const createHire = (input: Omit<Hire, 'id' | 'createdAt' | 'status'>) => {
-      setDb((current) => ({
-        ...current,
-        hires: [
-          ...current.hires,
-          {
-            ...input,
-            id: nanoid(),
-            status: 'open',
-            createdAt: todayISO()
-          }
-        ],
-        tools: current.tools.map((tool) =>
-          tool.id === input.toolId ? { ...tool, status: 'hired' } : tool
-        )
-      }));
+      setDb((current: DB) => {
+        const hire: Hire = {
+          ...input,
+          id: nanoid(),
+          status: 'open',
+          createdAt: todayISO()
+        };
+        const hires: Hire[] = [...current.hires, hire];
+        const tools: Tool[] = current.tools.map((tool) => {
+          if (tool.id !== input.toolId) return tool;
+          const updated: Tool = { ...tool, status: 'hired' };
+          return updated;
+        });
+        return { ...current, hires, tools };
+      });
     };
 
     const updateHireStatus = (id: string, updates: Partial<Hire>) => {
-      setDb((current) => {
+      setDb((current: DB) => {
         let affectedToolId: string | undefined;
-        const hires = current.hires.map((hire) => {
+        const hires: Hire[] = current.hires.map((hire) => {
           if (hire.id !== id) return hire;
           affectedToolId = hire.toolId;
           const next: Hire = { ...hire, ...updates };
@@ -160,13 +174,15 @@ export function DBProvider({ children }: PropsWithChildren) {
           return next;
         });
 
-        const tools = current.tools.map((tool) => {
+        const tools: Tool[] = current.tools.map((tool) => {
           if (tool.id !== affectedToolId) return tool;
           if (updates.status === 'closed') {
-            return { ...tool, status: 'available' };
+            const nextTool: Tool = { ...tool, status: 'available' };
+            return nextTool;
           }
           if (updates.status === 'open' || updates.status === 'overdue') {
-            return { ...tool, status: 'hired' };
+            const nextTool: Tool = { ...tool, status: 'hired' };
+            return nextTool;
           }
           return tool;
         });
@@ -176,14 +192,14 @@ export function DBProvider({ children }: PropsWithChildren) {
     };
 
     const deleteHire = (id: string) => {
-      setDb((current) => ({
+      setDb((current: DB) => ({
         ...current,
         hires: current.hires.filter((hire) => hire.id !== id)
       }));
     };
 
     const importData = (data: Partial<DB>) => {
-      setDb((current) => ({
+      setDb((current: DB) => ({
         ...current,
         ...data,
         tools: data.tools ?? current.tools,
